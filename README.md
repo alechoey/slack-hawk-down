@@ -1,6 +1,6 @@
 # <img src="slack_hawk_down.png" width="100px" /> Slack Hawk Down
 
-Slack-flavored markdown as HTML
+The current up-to-date repo for Slack-flavored markdown as HTML
 
 ## Installation
 ```
