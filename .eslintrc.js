@@ -1,6 +1,6 @@
 module.exports = {
   parser: 'babel-eslint',
-  extends: ['airbnb', 'prettier'],
+  extends: ['airbnb/base', 'prettier'],
   env: {
     browser: true,
   },
@@ -13,11 +13,7 @@ module.exports = {
     'prettier/prettier': 'error',
     'import/extensions': [
       'error',
-      'always',
-      {
-        js: 'never',
-        ts: 'never',
-      },
+      'ignorePackages',
     ],
     'babel/new-cap': 1,
     'babel/no-invalid-this': 1,
