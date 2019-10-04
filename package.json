@@ -9,8 +9,7 @@
     "build": "yarn run update-emoji && yarn run compile && node_modules/.bin/rollup dist/index.js --file dist/bundle.js --format iife",
     "test": "yarn run update-emoji && node_modules/.bin/mocha --require @babel/register",
     "eslint": "eslint --ext js,ts src/",
-    "precommit": "yarn run eslint",
-    "prepublish": "yarn run precommit && yarn run test && yarn run build"
+    "prepublish": "yarn run eslint && yarn run test && yarn run build"
   },
   "repository": {
     "type": "git",
@@ -115,6 +114,11 @@
         }
       ],
       "no-continue": 0
+    }
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "yarn run eslint"
     }
   }
 }
