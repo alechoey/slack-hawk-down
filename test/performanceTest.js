@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { escapeForSlackWithMarkdown } from '../src/index.js'
+import { escapeForSlackWithMarkdown } from '../src/index.ts'
 
 describe('performance', () => {
   describe('negative matching', () => {
@@ -36,7 +36,7 @@ describe('performance', () => {
 
   describe('many replacements', () => {
     const input = fs.readFileSync(path.join(__dirname, 'fixtures/long_repetitive_block_quotes.txt'))
-    
+
     it('should not run out of memory', () => {
       escapeForSlackWithMarkdown(input)
     })

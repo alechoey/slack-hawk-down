@@ -1,4 +1,4 @@
-import { escapeForSlackWithMarkdown } from '../src/index.js'
+import { escapeForSlackWithMarkdown } from '../src/index.ts'
 
 describe('markdown', () => {
   describe('code multiline', () => {

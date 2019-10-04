@@ -1,4 +1,4 @@
-import { escapeForSlack } from '../src/index.js'
+import { escapeForSlack } from '../src/index.ts'
 
 describe('dates', () => {
 })
