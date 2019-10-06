@@ -4,7 +4,7 @@
   "description": "Render Slack flavored markdown as HTML",
   "main": "dist/bundle.js",
   "scripts": {
-    "update-emoji": "node updateEmoji.js",
+    "update-emoji": "node src/scripts/updateEmoji.js",
     "compile": "babel src --presets @babel/preset-env --out-dir dist",
     "build": "yarn run update-emoji && yarn run compile && node_modules/.bin/rollup dist/index.js --file dist/bundle.js --format iife",
     "test": "yarn run update-emoji && node_modules/.bin/mocha --require @babel/register",
@@ -32,6 +32,7 @@
     "@babel/cli": "^7.6.2",
     "@babel/core": "^7.6.2",
     "@babel/node": "^7.6.2",
+    "@babel/plugin-proposal-class-properties": "^7.5.5",
     "@babel/polyfill": "^7.6.0",
     "@babel/preset-env": "^7.6.2",
     "@babel/preset-typescript": "^7.6.0",

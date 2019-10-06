@@ -10,7 +10,7 @@ describe('markdown', () => {
 
     it('should convert newlines', () => {
       escapeForSlackWithMarkdown('```this is a code multiline\nwith newlines```').should.equal(
-        '<div class="slack_code">this is a code multiline<br>with newlines</div>',
+        '<div class="slack_code">this is a code multiline<br />with newlines</div>',
       );
     });
 
@@ -45,6 +45,12 @@ describe('markdown', () => {
         '<span class="slack_code">this is a code inline</span>',
       );
     });
+
+    it('should not greedily capture backticks', () => {
+      escapeForSlackWithMarkdown('`this is code``this is not').should.equal(
+        '<span class="slack_code">this is code</span>`this is not',
+      );
+    });
   });
 
   describe('bold', () => {
@@ -52,16 +58,36 @@ describe('markdown', () => {
       escapeForSlackWithMarkdown('this is *bold*').should.equal('this is <span class="slack_bold">bold</span>');
     });
 
-    it('should capture as much as possible', () => {
-      escapeForSlackWithMarkdown('this is *bold*with*more*asterisks*').should.equal(
-        'this is <span class="slack_bold">bold*with*more*asterisks</span>',
-      );
+    context('with spaces in between asterisks', () => {
+      it('should capture as much as possible', () => {
+        escapeForSlackWithMarkdown('this is *bold * with * more * asterisks*').should.equal(
+          'this is <span class="slack_bold">bold</span> with * more * asterisks*',
+        );
+      });
+    });
+
+    context('when next to another character', () => {
+      it('should not replace the bold delimiters', () => {
+        escapeForSlackWithMarkdown('a*this is not bold*').should.equal('a*this is not bold*');
+      });
     });
   });
 
   describe('italic', () => {
     it('should render an element', () => {
       escapeForSlackWithMarkdown('this is _italic_').should.equal('this is <span class="slack_italics">italic</span>');
+    });
+
+    context('when next to another character', () => {
+      it('should not replace the delimiters', () => {
+        escapeForSlackWithMarkdown('this_is not italic_').should.equal('this_is not italic_');
+      });
+
+      it('should replace space padded delimiters', () => {
+        escapeForSlackWithMarkdown('this _is_italic_').should.equal(
+          'this <span class="slack_italics">is_italic</span>',
+        );
+      });
     });
   });
 
@@ -70,6 +96,12 @@ describe('markdown', () => {
       escapeForSlackWithMarkdown('this is ~struck~').should.equal(
         'this is <span class="slack_strikethrough">struck</span>',
       );
+    });
+
+    context('with a closing whitespace', () => {
+      it('should not render an element', () => {
+        escapeForSlackWithMarkdown('this is ~not struck ~').should.equal('this is ~not struck ~');
+      });
     });
   });
 
@@ -82,16 +114,41 @@ describe('markdown', () => {
 
     it('should replace newlines', () => {
       escapeForSlackWithMarkdown('&gt;&gt;&gt;this is a block quote\nwith newlines').should.equal(
-        '<div class="slack_block">this is a block quote<br>with newlines</div>',
+        '<div class="slack_block">this is a block quote<br />with newlines</div>',
       );
     });
   });
 
   describe('inline quote', () => {
     it('should render an element', () => {
-      escapeForSlackWithMarkdown('this is an &gt;inline quote').should.equal(
-        'this is an <span class="slack_block">inline quote</span>',
+      escapeForSlackWithMarkdown('this is an \n&gt;inline quote').should.equal(
+        'this is an \n<span class="slack_block">inline quote</span>',
       );
+    });
+
+    context('when not start anchored', () => {
+      it('should not render an element', () => {
+        escapeForSlackWithMarkdown('this is not > an inline quote').should.equal('this is not > an inline quote');
+      });
+    });
+  });
+
+  describe('mixed markdown', () => {
+    context('bold and italic', () => {
+      it('should replace both', () => {
+        escapeForSlackWithMarkdown('*_bold and italic_*').should.equal(
+          '<span class="slack_bold"><span class="slack_italics">bold and italic</span></span>',
+        );
+      });
+    });
+    context('when delimiters are mismatched', () => {
+      it('should respect precedence', () => {
+        escapeForSlackWithMarkdown('*~this is bold*~').should.equal('<span class="slack_bold">~this is bold</span>~');
+      });
+
+      it('should not replace invalid delimiters', () => {
+        escapeForSlackWithMarkdown('~*this is bold~*').should.equal('~*this is bold~*');
+      });
     });
   });
 });

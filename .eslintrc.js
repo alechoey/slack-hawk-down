@@ -3,6 +3,7 @@ module.exports = {
   extends: ['airbnb/base', 'prettier'],
   env: {
     browser: true,
+    commonjs: true,
   },
   plugins: ['prettier', 'babel'],
   settings: {
@@ -11,10 +12,7 @@ module.exports = {
   },
   rules: {
     'prettier/prettier': 'error',
-    'import/extensions': [
-      'error',
-      'ignorePackages',
-    ],
+    'import/extensions': ['error', 'ignorePackages'],
     'babel/new-cap': 1,
     'babel/no-invalid-this': 1,
   },

@@ -10,16 +10,20 @@ export const strikethroughOpeningPatternString = '<span class="slack_strikethrou
 export const italicOpeningPatternString = '<span class="slack_italics">';
 export const blockDivOpeningPatternString = '<div class="slack_block">';
 export const blockSpanOpeningPatternString = '<span class="slack_block">';
-export const lineBreakTagLiteral = '<br>';
+export const lineBreakTagLiteral = '<br />';
 export const newlineRegExp = XRegExp.cache('\\n', 'nsg');
 export const whitespaceRegExp = XRegExp.cache('\\s', 'ns');
 
 export const buildOpeningDelimiterRegExp = (delimiter: string, options: IPatternOptions = {}) => {
-  return XRegExp.cache(`${options.spacePadded ? '(?<openingCapturedWhitespace>^|\\s)' : ''}${delimiter}`, 'ns');
+  const noAlphaNumericPadPattern = options.noAlphaNumericPadded ? '(?<=^|[^A-z0-9])' : '';
+  const openingWhitespacePattern = options.openingWhitespace ? '(?<openingCapturedWhitespace>^|\\s)?' : '';
+  return XRegExp.cache(`${noAlphaNumericPadPattern}${delimiter}${openingWhitespacePattern}(?=\\S)`, 'ns');
 };
 
 // We can't perform negative lookahead to capture the last consecutive delimiter
 // since delimiters can be more than once character long
 export const buildClosingDelimiterRegExp = (delimiter: string, options: IPatternOptions = {}) => {
-  return XRegExp.cache(`${delimiter}${options.spacePadded ? '(?<closingCapturedWhitespace>\\s|$)' : ''}`, 'ns');
+  const closingWhitespacePattern = options.closingWhitespace ? '(?<closingCapturedWhitespace>\\s|$)?' : '';
+  const noAlphaNumericPadPattern = options.noAlphaNumericPadded ? '(?=$|[^A-z0-9])' : '';
+  return XRegExp.cache(`(?<=\\S)${closingWhitespacePattern}${delimiter}${noAlphaNumericPadPattern}`, 'ns');
 };

@@ -2,13 +2,66 @@ import XRegExp from 'xregexp';
 import { IReplaceOptions, IReplacedText } from './types.ts';
 import * as Patterns from './patterns.ts';
 
-const incrementWindows = (windows: number[][], offset: number) => {
-  return windows.map((tagWindow) => {
-    const window = tagWindow;
-    window[0] += offset;
-    window[1] += offset;
-    return window;
-  });
+class ReplacementWindow {
+  start: number;
+
+  end: number;
+
+  replacementDisabled: boolean;
+
+  constructor(start: number, end: number) {
+    this.start = start;
+    this.end = end;
+    this.replacementDisabled = false;
+  }
+
+  increment(offset: number) {
+    this.start += offset;
+    this.end += offset;
+  }
+
+  disable() {
+    this.replacementDisabled = true;
+  }
+
+  static incrementAt(windows: ReplacementWindow[], index: number, offset: number) {
+    windows.slice(index).forEach((window) => {
+      window.increment(offset);
+    });
+  }
+}
+
+const findOpeningMatch = (text: string, regexp: any, startIndex: number) => {
+  return XRegExp.exec(text, regexp, startIndex);
+};
+const findClosingMatch = (
+  text: string,
+  regexp: any,
+  startIndex: number,
+  endIndex: number,
+  delimiterLength: number,
+  options = { greedy: false },
+) => {
+  // Look ahead at the next index to greedily capture as much inside the delimiters as possible
+  let closingMatch = XRegExp.exec(text, regexp, startIndex);
+  if (options.greedy) {
+    let nextClosingMatch = closingMatch && XRegExp.exec(text, regexp, closingMatch.index + 1);
+    while (nextClosingMatch) {
+      // If the next match is still in the window and there is not whitespace in between the two, use the later one
+      const nextWhitespace = XRegExp.exec(text, Patterns.whitespaceRegExp, closingMatch.index + delimiterLength);
+      const crossedWhitespace = nextWhitespace && nextWhitespace.index <= nextClosingMatch.index;
+      if (nextClosingMatch.index > endIndex || crossedWhitespace) {
+        break;
+      }
+      closingMatch = nextClosingMatch;
+      nextClosingMatch = XRegExp.exec(text, regexp, closingMatch.index + 1);
+    }
+  }
+
+  if (closingMatch && closingMatch.index <= endIndex) {
+    return closingMatch;
+  }
+  return null;
 };
 
 const replaceInWindows = (
@@ -16,83 +69,74 @@ const replaceInWindows = (
   delimiterLiteral: string,
   replacementOpeningLiteral: string,
   replacementClosingLiteral: string,
-  closedTagWindows: number[][],
+  windows: ReplacementWindow[],
   options: IReplaceOptions = {},
-  tagWindowIndex: number = 0,
-  tagWindowOffset: number = 0,
+  windowIndex: number = 0,
+  windowOffset: number = 0,
 ): IReplacedText => {
-  const { asymmetric, endingPattern, partitionWindowOnMatch, replaceNewlines, spacePadded } = options;
-  let maxReplacements = options.maxReplacements || Infinity;
+  const {
+    asymmetric,
+    closingWhitespace,
+    disableNestedReplacement,
+    endingPattern,
+    greedy,
+    openingWhitespace,
+    replaceNewlines,
+    noAlphaNumericPadded,
+    startAnchored,
+  } = options;
+  let maxReplacements = options.maxReplacements === undefined ? Infinity : options.maxReplacements;
 
-  const openingDelimiterRegExp = Patterns.buildOpeningDelimiterRegExp(delimiterLiteral, { spacePadded });
+  const openingDelimiterRegExp = Patterns.buildOpeningDelimiterRegExp(XRegExp.escape(delimiterLiteral), {
+    openingWhitespace,
+    noAlphaNumericPadded,
+    startAnchored,
+  });
   const closingDelimiterRegExp =
     asymmetric && endingPattern
       ? Patterns.buildClosingDelimiterRegExp(endingPattern)
-      : Patterns.buildClosingDelimiterRegExp(delimiterLiteral, { spacePadded });
+      : Patterns.buildClosingDelimiterRegExp(XRegExp.escape(delimiterLiteral), {
+          closingWhitespace,
+          noAlphaNumericPadded,
+        });
 
-  if (tagWindowIndex >= closedTagWindows.length || (maxReplacements && maxReplacements <= 0)) {
+  if (windowIndex >= windows.length || (maxReplacements && maxReplacements <= 0)) {
     return {
       text,
-      closedTagWindows,
+      windows,
     };
   }
 
-  const currentClosedTagWindow = closedTagWindows[tagWindowIndex];
-  const tagWindowStartIndex = currentClosedTagWindow[0];
-  const tagWindowEndIndex = currentClosedTagWindow[1];
-  if (tagWindowStartIndex >= tagWindowEndIndex || tagWindowStartIndex + tagWindowOffset > tagWindowEndIndex) {
-    return replaceInWindows(
-      text,
-      delimiterLiteral,
-      replacementOpeningLiteral,
-      replacementClosingLiteral,
-      closedTagWindows,
-      options,
-      tagWindowIndex + 1,
-    );
-  }
+  const currentWindow = windows[windowIndex];
+  const openingMatch = findOpeningMatch(text, openingDelimiterRegExp, currentWindow.start + windowOffset);
 
-  const openingMatch = XRegExp.exec(text, openingDelimiterRegExp, tagWindowStartIndex + tagWindowOffset);
-
-  if (openingMatch && openingMatch.index < tagWindowEndIndex) {
+  if (!currentWindow.replacementDisabled && openingMatch && openingMatch.index <= currentWindow.end) {
     const closingDelimiterLength = asymmetric ? 0 : delimiterLiteral.length;
+    const closingMatchMaxIndex = currentWindow.end - closingDelimiterLength;
     // Allow matching the end of the string if on the last window
-    const closingMatchMaxIndex =
-      (tagWindowIndex === closedTagWindows.length - 1 && tagWindowEndIndex === text.length
-        ? tagWindowEndIndex + 1
-        : tagWindowEndIndex) -
-      closingDelimiterLength +
-      1;
+    const adjustedClosingMatchMaxIndex =
+      currentWindow.end === text.length - 1 ? closingMatchMaxIndex + 1 : closingMatchMaxIndex;
 
-    // Look ahead at the next index to greedily capture as much inside the delimiters as possible
-    let closingMatch = XRegExp.exec(text, closingDelimiterRegExp, openingMatch.index + delimiterLiteral.length);
-    let nextClosingMatch = closingMatch && XRegExp.exec(text, closingDelimiterRegExp, closingMatch.index + 1);
-    while (nextClosingMatch) {
-      // If the next match is still in the window and there is not whitespace in between the two, use the later one
-      const nextWhitespace = XRegExp.exec(
-        text,
-        Patterns.whitespaceRegExp,
-        closingMatch.index + delimiterLiteral.length,
-      );
-      const crossedWhitespace = nextWhitespace && nextWhitespace.index < closingMatchMaxIndex;
-      if (nextClosingMatch.index >= closingMatchMaxIndex || crossedWhitespace) {
-        break;
-      }
-      closingMatch = nextClosingMatch;
-      nextClosingMatch = XRegExp.exec(text, closingDelimiterRegExp, closingMatch.index + 1);
-    }
+    const closingMatch = findClosingMatch(
+      text,
+      closingDelimiterRegExp,
+      openingMatch.index + openingMatch[0].length,
+      adjustedClosingMatchMaxIndex,
+      closingDelimiterLength,
+      { greedy },
+    );
 
-    if (closingMatch && closingMatch.index < closingMatchMaxIndex) {
+    if (closingMatch) {
       const afterDelimitersIndex = closingMatch.index + closingMatch[0].length;
       const textBeforeDelimiter = text.slice(0, openingMatch.index);
       const textAfterDelimiter = text.slice(afterDelimitersIndex);
 
-      const openingReplacementString = `${
-        spacePadded ? openingMatch.openingCapturedWhitespace : ''
-      }${replacementOpeningLiteral}`;
-      const closingReplacementString = `${replacementClosingLiteral}${
-        spacePadded ? closingMatch.closingCapturedWhitespace : ''
-      }${asymmetric ? closingMatch[0] : ''}`;
+      const openingReplacementString = `${replacementOpeningLiteral}${(!noAlphaNumericPadded &&
+        openingMatch.openingCapturedWhitespace) ||
+        ''}`;
+      const closingReplacementString = `${(!noAlphaNumericPadded && closingMatch.closingCapturedWhitespace) || ''}${
+        asymmetric ? closingMatch[0] : ''
+      }${replacementClosingLiteral}`;
 
       const textBetweenDelimiters = text.slice(openingMatch.index + openingMatch[0].length, closingMatch.index);
       const replacedTextBetweenDelimiters = replaceNewlines
@@ -105,41 +149,38 @@ const replaceInWindows = (
         closingReplacementString,
       ].join('');
 
-      const delimiterReplacementLength = delimiterLiteral.length + closingDelimiterLength;
-      const windowOffset =
-        replacementOpeningLiteral.length +
+      const windowOffsetIncrement =
+        replacementOpeningLiteral.length -
+        delimiterLiteral.length +
         replacementClosingLiteral.length -
-        delimiterReplacementLength +
+        closingDelimiterLength +
         replacedTextBetweenDelimiters.length -
         textBetweenDelimiters.length;
-      const newUpperWindowLimit = tagWindowEndIndex + windowOffset;
 
-      const nextWindowIndex = partitionWindowOnMatch ? tagWindowIndex + 1 : tagWindowIndex;
-      const nextTagWindowOffset = partitionWindowOnMatch
-        ? 0
-        : afterDelimitersIndex + windowOffset - tagWindowStartIndex + 1;
-      if (partitionWindowOnMatch) {
-        // Split the current window into two by the occurrence of the delimiter pair
-        currentClosedTagWindow[1] = openingMatch.index;
-        closedTagWindows.splice(nextWindowIndex, 0, [
-          closingMatch.index + closingDelimiterLength + windowOffset,
-          newUpperWindowLimit,
-        ]);
-      } else {
-        currentClosedTagWindow[1] = newUpperWindowLimit;
-      }
-      const incrementedWindows = incrementWindows(closedTagWindows.slice(nextWindowIndex + 1), windowOffset);
+      const replacedText = [textBeforeDelimiter, replacedDelimiterText, textAfterDelimiter].join('');
       maxReplacements -= 1;
 
+      // Split the current window into two by the occurrence of the delimiter pair
+      windows.splice(
+        windowIndex + 1,
+        0,
+        new ReplacementWindow(closingMatch.index + closingDelimiterLength, currentWindow.end),
+      );
+      ReplacementWindow.incrementAt(windows, windowIndex + 1, windowOffsetIncrement);
+      currentWindow.end = openingMatch.index + replacedDelimiterText.length - 1;
+      if (disableNestedReplacement) {
+        currentWindow.disable();
+      }
+
       return replaceInWindows(
-        [textBeforeDelimiter, replacedDelimiterText, textAfterDelimiter].join(''),
+        replacedText,
         delimiterLiteral,
         replacementOpeningLiteral,
         replacementClosingLiteral,
-        incrementedWindows,
+        windows,
         { ...options, maxReplacements },
-        nextWindowIndex,
-        nextTagWindowOffset,
+        windowIndex + 1,
+        0,
       );
     }
   }
@@ -149,86 +190,78 @@ const replaceInWindows = (
     delimiterLiteral,
     replacementOpeningLiteral,
     replacementClosingLiteral,
-    closedTagWindows,
+    windows,
     options,
-    tagWindowIndex + 1,
+    windowIndex + 1,
   );
 };
 
-const replaceBlockCode = ({ text, closedTagWindows }: IReplacedText) =>
-  replaceInWindows(
-    text,
-    '```',
-    Patterns.codeDivOpeningPatternString,
-    Patterns.closingDivPatternString,
-    closedTagWindows,
-    { partitionWindowOnMatch: true, replaceNewlines: true },
-  );
+const replaceBlockCode = ({ text, windows }: IReplacedText) =>
+  replaceInWindows(text, '```', Patterns.codeDivOpeningPatternString, Patterns.closingDivPatternString, windows, {
+    closingWhitespace: true,
+    disableNestedReplacement: true,
+    greedy: true,
+    openingWhitespace: true,
+    replaceNewlines: true,
+  });
 
-const replaceCode = ({ text, closedTagWindows }: IReplacedText) =>
-  replaceInWindows(
-    text,
-    '`',
-    Patterns.codeSpanOpeningPatternString,
-    Patterns.closingSpanPatternString,
-    closedTagWindows,
-    { partitionWindowOnMatch: true },
-  );
+const replaceCode = ({ text, windows }: IReplacedText) =>
+  replaceInWindows(text, '`', Patterns.codeSpanOpeningPatternString, Patterns.closingSpanPatternString, windows, {
+    closingWhitespace: true,
+    disableNestedReplacement: true,
+    openingWhitespace: true,
+  });
 
-const replaceBold = ({ text, closedTagWindows }: IReplacedText) =>
-  replaceInWindows(
-    text,
-    XRegExp.escape('*'),
-    Patterns.boldOpeningPatternString,
-    Patterns.closingSpanPatternString,
-    closedTagWindows,
-    { maxReplacements: 100 },
-  );
+const replaceBold = ({ text, windows }: IReplacedText) =>
+  replaceInWindows(text, '*', Patterns.boldOpeningPatternString, Patterns.closingSpanPatternString, windows, {
+    closingWhitespace: true,
+    maxReplacements: 100,
+    noAlphaNumericPadded: true,
+  });
 
-const replaceStrikethrough = ({ text, closedTagWindows }: IReplacedText) =>
-  replaceInWindows(
-    text,
-    '~',
-    Patterns.strikethroughOpeningPatternString,
-    Patterns.closingSpanPatternString,
-    closedTagWindows,
-    { maxReplacements: 100 },
-  );
+const replaceStrikethrough = ({ text, windows }: IReplacedText) =>
+  replaceInWindows(text, '~', Patterns.strikethroughOpeningPatternString, Patterns.closingSpanPatternString, windows, {
+    maxReplacements: 100,
+    openingWhitespace: true,
+    noAlphaNumericPadded: true,
+  });
 
-const replaceItalic = ({ text, closedTagWindows }: IReplacedText) =>
-  replaceInWindows(
-    text,
-    '_',
-    Patterns.italicOpeningPatternString,
-    Patterns.closingSpanPatternString,
-    closedTagWindows,
-    { spacePadded: true, maxReplacements: 100 },
-  );
+const replaceItalic = ({ text, windows }: IReplacedText) =>
+  replaceInWindows(text, '_', Patterns.italicOpeningPatternString, Patterns.closingSpanPatternString, windows, {
+    closingWhitespace: true,
+    maxReplacements: 100,
+    openingWhitespace: true,
+    noAlphaNumericPadded: true,
+  });
 
-const replaceBlockQuote = ({ text, closedTagWindows }: IReplacedText) =>
+const replaceBlockQuote = ({ text, windows }: IReplacedText) =>
   replaceInWindows(
     text,
     '&gt;&gt;&gt;',
     Patterns.blockDivOpeningPatternString,
     Patterns.closingDivPatternString,
-    closedTagWindows,
+    windows,
     {
       asymmetric: true,
+      closingWhitespace: true,
+      greedy: true,
       endingPattern: '$',
       replaceNewlines: true,
       maxReplacements: 100,
+      openingWhitespace: true,
+      startAnchored: true,
     },
   );
 
-const replaceQuote = ({ text, closedTagWindows }: IReplacedText) =>
-  replaceInWindows(
-    text,
-    '&gt;',
-    Patterns.blockSpanOpeningPatternString,
-    Patterns.closingSpanPatternString,
-    closedTagWindows,
-    { asymmetric: true, endingPattern: '\\n|$', maxReplacements: 100 },
-  );
+const replaceQuote = ({ text, windows }: IReplacedText) =>
+  replaceInWindows(text, '&gt;', Patterns.blockSpanOpeningPatternString, Patterns.closingSpanPatternString, windows, {
+    asymmetric: true,
+    closingWhitespace: true,
+    endingPattern: '\\n|$',
+    maxReplacements: 100,
+    openingWhitespace: true,
+    startAnchored: true,
+  });
 
 const replaceSlackdown = (text: string) => {
   return [
@@ -239,7 +272,7 @@ const replaceSlackdown = (text: string) => {
     replaceItalic,
     replaceBlockQuote,
     replaceQuote,
-  ].reduce((acc, func) => func(acc), { text, closedTagWindows: [[0, text.length]] }).text;
+  ].reduce((acc, func) => func(acc), { text, windows: [new ReplacementWindow(0, text.length - 1)] }).text;
 };
 
 export default replaceSlackdown;
