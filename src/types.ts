@@ -17,16 +17,11 @@ export interface IOptions {
 
 export interface IReplaceOptions {
   asymmetric?: boolean;
-  closingWhitespace?: boolean;
   disableNestedReplacement?: boolean;
-  endingPattern?: string;
   greedy?: boolean;
   maxReplacements?: number;
-  openingWhitespace?: boolean;
   noAlphaNumericPadded?: boolean;
-  partitionWindowOnMatch?: boolean;
   replaceNewlines?: boolean;
-  startAnchored?: boolean;
 }
 
 export interface IPatternOptions {

@@ -67,37 +67,16 @@ const findClosingMatch = (
 const replaceInWindows = (
   text: string,
   delimiterLiteral: string,
+  openingDelimiterRegExp: any,
+  closingDelimiterRegExp: any,
   replacementOpeningLiteral: string,
   replacementClosingLiteral: string,
   windows: ReplacementWindow[],
   options: IReplaceOptions = {},
   windowIndex: number = 0,
 ): IReplacedText => {
-  const {
-    asymmetric,
-    closingWhitespace,
-    disableNestedReplacement,
-    endingPattern,
-    greedy,
-    openingWhitespace,
-    replaceNewlines,
-    noAlphaNumericPadded,
-    startAnchored,
-  } = options;
+  const { asymmetric, disableNestedReplacement, greedy, replaceNewlines, noAlphaNumericPadded } = options;
   let maxReplacements = options.maxReplacements === undefined ? Infinity : options.maxReplacements;
-
-  const openingDelimiterRegExp = Patterns.buildOpeningDelimiterRegExp(XRegExp.escape(delimiterLiteral), {
-    openingWhitespace,
-    noAlphaNumericPadded,
-    startAnchored,
-  });
-  const closingDelimiterRegExp =
-    asymmetric && endingPattern
-      ? Patterns.buildClosingDelimiterRegExp(endingPattern)
-      : Patterns.buildClosingDelimiterRegExp(XRegExp.escape(delimiterLiteral), {
-          closingWhitespace,
-          noAlphaNumericPadded,
-        });
 
   if (windowIndex >= windows.length || (maxReplacements && maxReplacements <= 0)) {
     return {
@@ -174,6 +153,8 @@ const replaceInWindows = (
       return replaceInWindows(
         replacedText,
         delimiterLiteral,
+        openingDelimiterRegExp,
+        closingDelimiterRegExp,
         replacementOpeningLiteral,
         replacementClosingLiteral,
         windows,
@@ -186,6 +167,8 @@ const replaceInWindows = (
   return replaceInWindows(
     text,
     delimiterLiteral,
+    openingDelimiterRegExp,
+    closingDelimiterRegExp,
     replacementOpeningLiteral,
     replacementClosingLiteral,
     windows,
@@ -195,71 +178,111 @@ const replaceInWindows = (
 };
 
 const replaceBlockCode = ({ text, windows }: IReplacedText) =>
-  replaceInWindows(text, '```', Patterns.codeDivOpeningPatternString, Patterns.closingDivPatternString, windows, {
-    closingWhitespace: true,
-    disableNestedReplacement: true,
-    greedy: true,
-    openingWhitespace: true,
-    replaceNewlines: true,
-  });
+  replaceInWindows(
+    text,
+    Patterns.blockCodeDelimiter,
+    Patterns.blockCodeOpeningPattern,
+    Patterns.blockCodeClosingPattern,
+    Patterns.codeDivOpeningPatternString,
+    Patterns.closingDivPatternString,
+    windows,
+    {
+      disableNestedReplacement: true,
+      greedy: true,
+      replaceNewlines: true,
+    },
+  );
 
 const replaceCode = ({ text, windows }: IReplacedText) =>
-  replaceInWindows(text, '`', Patterns.codeSpanOpeningPatternString, Patterns.closingSpanPatternString, windows, {
-    closingWhitespace: true,
-    disableNestedReplacement: true,
-    openingWhitespace: true,
-  });
+  replaceInWindows(
+    text,
+    Patterns.inlineCodeDelimiter,
+    Patterns.inlineCodeOpeningPattern,
+    Patterns.inlineCodeClosingPattern,
+    Patterns.codeSpanOpeningPatternString,
+    Patterns.closingSpanPatternString,
+    windows,
+    {
+      disableNestedReplacement: true,
+    },
+  );
 
 const replaceBold = ({ text, windows }: IReplacedText) =>
-  replaceInWindows(text, '*', Patterns.boldOpeningPatternString, Patterns.closingSpanPatternString, windows, {
-    closingWhitespace: true,
-    maxReplacements: 100,
-    noAlphaNumericPadded: true,
-  });
+  replaceInWindows(
+    text,
+    Patterns.boldDelimiter,
+    Patterns.boldOpeningPattern,
+    Patterns.boldClosingPattern,
+    Patterns.boldOpeningPatternString,
+    Patterns.closingSpanPatternString,
+    windows,
+    {
+      maxReplacements: 100,
+      noAlphaNumericPadded: true,
+    },
+  );
 
 const replaceStrikethrough = ({ text, windows }: IReplacedText) =>
-  replaceInWindows(text, '~', Patterns.strikethroughOpeningPatternString, Patterns.closingSpanPatternString, windows, {
-    maxReplacements: 100,
-    openingWhitespace: true,
-    noAlphaNumericPadded: true,
-  });
+  replaceInWindows(
+    text,
+    Patterns.strikethroughDelimiter,
+    Patterns.strikethroughOpeningPattern,
+    Patterns.strikethroughClosingPattern,
+    Patterns.strikethroughOpeningPatternString,
+    Patterns.closingSpanPatternString,
+    windows,
+    {
+      maxReplacements: 100,
+      noAlphaNumericPadded: true,
+    },
+  );
 
 const replaceItalic = ({ text, windows }: IReplacedText) =>
-  replaceInWindows(text, '_', Patterns.italicOpeningPatternString, Patterns.closingSpanPatternString, windows, {
-    closingWhitespace: true,
-    maxReplacements: 100,
-    openingWhitespace: true,
-    noAlphaNumericPadded: true,
-  });
+  replaceInWindows(
+    text,
+    Patterns.italicDelimiter,
+    Patterns.italicOpeningPattern,
+    Patterns.italicClosingPattern,
+    Patterns.italicOpeningPatternString,
+    Patterns.closingSpanPatternString,
+    windows,
+    {
+      maxReplacements: 100,
+      noAlphaNumericPadded: true,
+    },
+  );
 
 const replaceBlockQuote = ({ text, windows }: IReplacedText) =>
   replaceInWindows(
     text,
-    '&gt;&gt;&gt;',
+    Patterns.blockQuoteDelimiter,
+    Patterns.blockQuoteOpeningPattern,
+    Patterns.blockQuoteClosingPattern,
     Patterns.blockDivOpeningPatternString,
     Patterns.closingDivPatternString,
     windows,
     {
       asymmetric: true,
-      closingWhitespace: true,
       greedy: true,
-      endingPattern: '$',
       replaceNewlines: true,
       maxReplacements: 100,
-      openingWhitespace: true,
-      startAnchored: true,
     },
   );
 
 const replaceQuote = ({ text, windows }: IReplacedText) =>
-  replaceInWindows(text, '&gt;', Patterns.blockSpanOpeningPatternString, Patterns.closingSpanPatternString, windows, {
-    asymmetric: true,
-    closingWhitespace: true,
-    endingPattern: '\\n|$',
-    maxReplacements: 100,
-    openingWhitespace: true,
-    startAnchored: true,
-  });
+  replaceInWindows(
+    text,
+    Patterns.inlineQuoteDelimiter,
+    Patterns.inlineQuoteOpeningPattern,
+    Patterns.inlineQuoteClosingPattern,
+    Patterns.blockSpanOpeningPatternString,
+    Patterns.closingSpanPatternString,
+    windows,
+    {
+      asymmetric: true,
+      maxReplacements: 100,
+    },
+  );
 
 const replaceSlackdown = (text: string) => {
   return [
