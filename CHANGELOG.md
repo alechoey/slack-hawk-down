@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.1
+- Use browserify for building
+- Fixes broken bundle imports
+
 ## 0.5.0
 - Add typescript function definitions
 - Various markdown behavior changes
