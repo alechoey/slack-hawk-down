@@ -2,6 +2,8 @@
 
 The current up-to-date repo for Slack-flavored markdown as HTML
 
+https://www.npmjs.com/package/slack-hawk-down
+
 ## Installation
 ```
 npm install --save slack-hawk-down
@@ -49,7 +51,7 @@ You can get a list of user groups for your Slack team by requesting [this endpoi
 ## Testing
 
 ```
-npm test
+yarn test
 ```
 
 ## Upcoming
