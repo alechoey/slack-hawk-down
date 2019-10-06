@@ -146,7 +146,7 @@ describe('markdown', () => {
         escapeForSlackWithMarkdown('*~this is bold*~').should.equal('<span class="slack_bold">~this is bold</span>~');
       });
 
-      it('should not replace invalid delimiters', () => {
+      it.skip('should not replace invalid delimiters', () => {
         escapeForSlackWithMarkdown('~*this is bold~*').should.equal('~*this is bold~*');
       });
     });
