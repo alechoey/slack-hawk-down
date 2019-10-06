@@ -15,21 +15,23 @@ export const newlineRegExp = XRegExp.build('\\n', 'ng');
 export const whitespaceRegExp = XRegExp.build('\\s', 'n');
 
 const buildOpeningDelimiterRegExp = (delimiter: string, options: IPatternOptions = {}) => {
-  const startPattern = '(?<=^|\\n)';
-  const noAlphaNumericPadded = options.noAlphaNumericPadded ? '(?<=^|[^A-z0-9])' : '';
+  const anchorPattern = '(?<=^|\\n)';
+  const noAlphaNumericPadPattern = '(?<=^|[^A-Za-z0-9])';
+  const noQuoteOrAlphaPadPattern = options.noQuotePad ? "(?<=^|[^'`A-Za-z0-9])" : noAlphaNumericPadPattern;
   const openingWhitespacePattern = options.openingWhitespace ? '(?<openingCapturedWhitespace>^|\\s*)' : '';
-  return XRegExp.build(
-    `${options.startAnchored ? startPattern : noAlphaNumericPadded}${delimiter}${openingWhitespacePattern}(?=\\S)`,
-    'n',
-  );
+  const characterPadPattern = options.allowCharacterPad ? '' : noQuoteOrAlphaPadPattern;
+  const startPattern = options.startAnchored ? anchorPattern : characterPadPattern;
+  return XRegExp.build(`${startPattern}${delimiter}${openingWhitespacePattern}(?=\\S)`, 'n');
 };
 
 // We can't perform negative lookahead to capture the last consecutive delimiter
 // since delimiters can be more than once character long
 const buildClosingDelimiterRegExp = (delimiter: string, options: IPatternOptions = {}) => {
   const closingWhitespacePattern = options.closingWhitespace ? '(?<closingCapturedWhitespace>\\s*)' : '';
-  const noAlphaNumericPadPattern = options.noAlphaNumericPadded ? '(?=$|[^A-z0-9])' : '';
-  return XRegExp.build(`(?<=\\S)${closingWhitespacePattern}${delimiter}${noAlphaNumericPadPattern}`, 'n');
+  const noAlphaNumericPadPattern = '(?=$|[^A-Za-z0-9])';
+  const noQuoteOrAlphaPadPattern = options.noQuotePad ? "(?=$|[^'`A-Za-z0-9])" : noAlphaNumericPadPattern;
+  const endPattern = options.allowCharacterPad ? '' : noQuoteOrAlphaPadPattern;
+  return XRegExp.build(`(?<=\\S)${closingWhitespacePattern}${delimiter}${endPattern}`, 'n');
 };
 
 export const blockCodeDelimiter = '```';
@@ -41,47 +43,44 @@ export const blockQuoteDelimiter = '&gt;&gt;&gt;';
 export const inlineQuoteDelimiter = '&gt;';
 
 export const blockCodeOpeningPattern = buildOpeningDelimiterRegExp(XRegExp.escape(blockCodeDelimiter), {
+  noQuotePad: true,
   openingWhitespace: true,
 });
 
 export const blockCodeClosingPattern = buildClosingDelimiterRegExp(XRegExp.escape('```'), {
   closingWhitespace: true,
+  noQuotePad: true,
 });
 
 export const inlineCodeOpeningPattern = buildOpeningDelimiterRegExp(XRegExp.escape(inlineCodeDelimiter), {
+  allowCharacterPad: true,
   openingWhitespace: true,
 });
 
 export const inlineCodeClosingPattern = buildClosingDelimiterRegExp(XRegExp.escape(inlineCodeDelimiter), {
+  allowCharacterPad: true,
+  noQuotePad: true,
   closingWhitespace: true,
 });
 
-export const boldOpeningPattern = buildOpeningDelimiterRegExp(XRegExp.escape(boldDelimiter), {
-  noAlphaNumericPadded: true,
-});
+export const boldOpeningPattern = buildOpeningDelimiterRegExp(XRegExp.escape(boldDelimiter));
 
 export const boldClosingPattern = buildClosingDelimiterRegExp(XRegExp.escape(boldDelimiter), {
   closingWhitespace: true,
-  noAlphaNumericPadded: true,
 });
 
 export const strikethroughOpeningPattern = buildOpeningDelimiterRegExp(XRegExp.escape(strikethroughDelimiter), {
-  noAlphaNumericPadded: true,
   openingWhitespace: true,
 });
 
-export const strikethroughClosingPattern = buildClosingDelimiterRegExp(XRegExp.escape(strikethroughDelimiter), {
-  noAlphaNumericPadded: true,
-});
+export const strikethroughClosingPattern = buildClosingDelimiterRegExp(XRegExp.escape(strikethroughDelimiter));
 
 export const italicOpeningPattern = buildOpeningDelimiterRegExp(XRegExp.escape(italicDelimiter), {
-  noAlphaNumericPadded: true,
   openingWhitespace: true,
 });
 
 export const italicClosingPattern = buildClosingDelimiterRegExp(XRegExp.escape(italicDelimiter), {
   closingWhitespace: true,
-  noAlphaNumericPadded: true,
 });
 
 export const blockQuoteOpeningPattern = buildOpeningDelimiterRegExp(XRegExp.escape(blockQuoteDelimiter), {

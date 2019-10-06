@@ -31,37 +31,8 @@ class ReplacementWindow {
   }
 }
 
-const findOpeningMatch = (text: string, regexp: any, startIndex: number) => {
+const findMatch = (text: string, regexp: any, startIndex: number) => {
   return XRegExp.exec(text, regexp, startIndex);
-};
-const findClosingMatch = (
-  text: string,
-  regexp: any,
-  startIndex: number,
-  endIndex: number,
-  delimiterLength: number,
-  options = { greedy: false },
-) => {
-  // Look ahead at the next index to greedily capture as much inside the delimiters as possible
-  let closingMatch = XRegExp.exec(text, regexp, startIndex);
-  if (options.greedy) {
-    let nextClosingMatch = closingMatch && XRegExp.exec(text, regexp, closingMatch.index + 1);
-    while (nextClosingMatch) {
-      // If the next match is still in the window and there is not whitespace in between the two, use the later one
-      const nextWhitespace = XRegExp.exec(text, Patterns.whitespaceRegExp, closingMatch.index + delimiterLength);
-      const crossedWhitespace = nextWhitespace && nextWhitespace.index <= nextClosingMatch.index;
-      if (nextClosingMatch.index > endIndex || crossedWhitespace) {
-        break;
-      }
-      closingMatch = nextClosingMatch;
-      nextClosingMatch = XRegExp.exec(text, regexp, closingMatch.index + 1);
-    }
-  }
-
-  if (closingMatch && closingMatch.index <= endIndex) {
-    return closingMatch;
-  }
-  return null;
 };
 
 const replaceInWindows = (
@@ -74,8 +45,9 @@ const replaceInWindows = (
   windows: ReplacementWindow[],
   options: IReplaceOptions = {},
   windowIndex: number = 0,
+  windowOffset: number = 0,
 ): IReplacedText => {
-  const { asymmetric, disableNestedReplacement, greedy, replaceNewlines, noAlphaNumericPadded } = options;
+  const { asymmetric, disableNestedReplacement, replaceNewlines, noAlphaNumericPadded } = options;
   let maxReplacements = options.maxReplacements === undefined ? Infinity : options.maxReplacements;
 
   if (windowIndex >= windows.length || (maxReplacements && maxReplacements <= 0)) {
@@ -87,25 +59,13 @@ const replaceInWindows = (
   }
 
   const currentWindow = windows[windowIndex];
-  const openingMatch = findOpeningMatch(text, openingDelimiterRegExp, currentWindow.start);
+  const openingMatch = findMatch(text, openingDelimiterRegExp, currentWindow.start + windowOffset);
 
   if (!currentWindow.replacementDisabled && openingMatch && openingMatch.index <= currentWindow.end) {
     const closingDelimiterLength = asymmetric ? 0 : delimiterLiteral.length;
-    const closingMatchMaxIndex = currentWindow.end - closingDelimiterLength;
-    // Allow matching the end of the string if on the last window
-    const adjustedClosingMatchMaxIndex =
-      currentWindow.end === text.length - 1 ? closingMatchMaxIndex + 1 : closingMatchMaxIndex;
+    const closingMatch = findMatch(text, closingDelimiterRegExp, openingMatch.index + openingMatch[0].length);
 
-    const closingMatch = findClosingMatch(
-      text,
-      closingDelimiterRegExp,
-      openingMatch.index + openingMatch[0].length,
-      adjustedClosingMatchMaxIndex,
-      closingDelimiterLength,
-      { greedy },
-    );
-
-    if (closingMatch) {
+    if (closingMatch && closingMatch.index + closingDelimiterLength - 1 <= currentWindow.end) {
       const afterDelimitersIndex = closingMatch.index + closingMatch[0].length;
       const textBeforeDelimiter = text.slice(0, openingMatch.index);
       const textAfterDelimiter = text.slice(afterDelimitersIndex);
@@ -131,26 +91,44 @@ const replaceInWindows = (
       const windowOffsetIncrement =
         replacementOpeningLiteral.length -
         delimiterLiteral.length +
-        replacementClosingLiteral.length -
-        closingDelimiterLength +
         replacedTextBetweenDelimiters.length -
-        textBetweenDelimiters.length;
+        textBetweenDelimiters.length +
+        replacementClosingLiteral.length -
+        closingDelimiterLength;
 
       const replacedText = [textBeforeDelimiter, replacedDelimiterText, textAfterDelimiter].join('');
+      ReplacementWindow.incrementAt(windows, windowIndex + 1, windowOffsetIncrement);
       maxReplacements -= 1;
 
-      // Split the current window into two by the occurrence of the delimiter pair
-      windows.splice(
-        windowIndex + 1,
-        0,
-        new ReplacementWindow(closingMatch.index + closingDelimiterLength, currentWindow.end),
-      );
-      ReplacementWindow.incrementAt(windows, windowIndex + 1, windowOffsetIncrement);
-      currentWindow.end = openingMatch.index + replacedDelimiterText.length - 1;
       if (disableNestedReplacement) {
-        currentWindow.disable();
+        // Split the current window into two at the occurrence of the delimiter pair
+        windows.splice(
+          windowIndex + 1,
+          0,
+          new ReplacementWindow(
+            closingMatch.index + closingDelimiterLength + windowOffsetIncrement,
+            currentWindow.end + windowOffsetIncrement,
+          ),
+        );
+        currentWindow.end = openingMatch.index + replacedDelimiterText.length - 1;
+        if (disableNestedReplacement) {
+          currentWindow.disable();
+        }
+
+        return replaceInWindows(
+          replacedText,
+          delimiterLiteral,
+          openingDelimiterRegExp,
+          closingDelimiterRegExp,
+          replacementOpeningLiteral,
+          replacementClosingLiteral,
+          windows,
+          { ...options, maxReplacements },
+          windowIndex + 1,
+        );
       }
 
+      currentWindow.end += windowOffsetIncrement;
       return replaceInWindows(
         replacedText,
         delimiterLiteral,
@@ -160,7 +138,8 @@ const replaceInWindows = (
         replacementClosingLiteral,
         windows,
         { ...options, maxReplacements },
-        windowIndex + 1,
+        windowIndex,
+        windowOffsetIncrement + windowOffsetIncrement,
       );
     }
   }
@@ -189,8 +168,8 @@ const replaceBlockCode = ({ text, maxReplacements, windows }: IReplacedText) =>
     windows,
     {
       disableNestedReplacement: true,
-      greedy: true,
       maxReplacements,
+      noQuotePad: true,
       replaceNewlines: true,
     },
   );
@@ -206,6 +185,7 @@ const replaceCode = ({ text, maxReplacements, windows }: IReplacedText) =>
     windows,
     {
       disableNestedReplacement: true,
+      noQuotePad: true,
       maxReplacements,
     },
   );
@@ -266,7 +246,6 @@ const replaceBlockQuote = ({ text, maxReplacements, windows }: IReplacedText) =>
     windows,
     {
       asymmetric: true,
-      greedy: true,
       replaceNewlines: true,
       maxReplacements,
     },

@@ -141,12 +141,21 @@ describe('markdown', () => {
         );
       });
     });
-    context('when delimiters are mismatched', () => {
+
+    context('italic and bold', () => {
+      it('should replace both', () => {
+        escapeForSlackWithMarkdown('_*italic and bold*_').should.equal(
+          '<span class="slack_italics"><span class="slack_bold">italic and bold</span></span>'
+        );
+      });
+    });
+
+    context.skip('when delimiters are mismatched', () => {
       it('should respect precedence', () => {
         escapeForSlackWithMarkdown('*~this is bold*~').should.equal('<span class="slack_bold">~this is bold</span>~');
       });
 
-      it.skip('should not replace invalid delimiters', () => {
+      it('should not replace invalid delimiters', () => {
         escapeForSlackWithMarkdown('~*this is bold~*').should.equal('~*this is bold~*');
       });
     });

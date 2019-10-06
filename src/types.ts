@@ -25,8 +25,9 @@ export interface IReplaceOptions {
 }
 
 export interface IPatternOptions {
+  allowCharacterPad?: boolean;
   closingWhitespace?: boolean;
-  noAlphaNumericPadded?: boolean;
+  noQuotePad?: boolean;
   openingWhitespace?: boolean;
   startAnchored?: boolean;
 }
