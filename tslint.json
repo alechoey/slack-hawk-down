@@ -1,0 +1,17 @@
+{
+  "linterOptions": {},
+  "rulesDirectory": [
+    "tslint-plugin-prettier"
+  ],
+  "rules": {
+    "prettier": true,
+    "no-console": ["log"],
+    "no-default-export": false,
+    "no-implicit-dependencies": false,
+    "no-submodule-imports": false,
+  },
+  "extends": [
+    "tslint:latest",
+    "tslint-config-prettier"
+  ]
+}
