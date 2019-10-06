@@ -72,7 +72,6 @@ const replaceInWindows = (
   windows: ReplacementWindow[],
   options: IReplaceOptions = {},
   windowIndex: number = 0,
-  windowOffset: number = 0,
 ): IReplacedText => {
   const {
     asymmetric,
@@ -108,7 +107,7 @@ const replaceInWindows = (
   }
 
   const currentWindow = windows[windowIndex];
-  const openingMatch = findOpeningMatch(text, openingDelimiterRegExp, currentWindow.start + windowOffset);
+  const openingMatch = findOpeningMatch(text, openingDelimiterRegExp, currentWindow.start);
 
   if (!currentWindow.replacementDisabled && openingMatch && openingMatch.index <= currentWindow.end) {
     const closingDelimiterLength = asymmetric ? 0 : delimiterLiteral.length;
@@ -180,7 +179,6 @@ const replaceInWindows = (
         windows,
         { ...options, maxReplacements },
         windowIndex + 1,
-        0,
       );
     }
   }
