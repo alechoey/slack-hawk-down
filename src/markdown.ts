@@ -82,6 +82,7 @@ const replaceInWindows = (
     return {
       text,
       windows,
+      maxReplacements,
     };
   }
 
@@ -177,7 +178,7 @@ const replaceInWindows = (
   );
 };
 
-const replaceBlockCode = ({ text, windows }: IReplacedText) =>
+const replaceBlockCode = ({ text, maxReplacements, windows }: IReplacedText) =>
   replaceInWindows(
     text,
     Patterns.blockCodeDelimiter,
@@ -189,11 +190,12 @@ const replaceBlockCode = ({ text, windows }: IReplacedText) =>
     {
       disableNestedReplacement: true,
       greedy: true,
+      maxReplacements,
       replaceNewlines: true,
     },
   );
 
-const replaceCode = ({ text, windows }: IReplacedText) =>
+const replaceCode = ({ text, maxReplacements, windows }: IReplacedText) =>
   replaceInWindows(
     text,
     Patterns.inlineCodeDelimiter,
@@ -204,10 +206,11 @@ const replaceCode = ({ text, windows }: IReplacedText) =>
     windows,
     {
       disableNestedReplacement: true,
+      maxReplacements,
     },
   );
 
-const replaceBold = ({ text, windows }: IReplacedText) =>
+const replaceBold = ({ text, maxReplacements, windows }: IReplacedText) =>
   replaceInWindows(
     text,
     Patterns.boldDelimiter,
@@ -217,12 +220,12 @@ const replaceBold = ({ text, windows }: IReplacedText) =>
     Patterns.closingSpanPatternString,
     windows,
     {
-      maxReplacements: 100,
+      maxReplacements,
       noAlphaNumericPadded: true,
     },
   );
 
-const replaceStrikethrough = ({ text, windows }: IReplacedText) =>
+const replaceStrikethrough = ({ text, maxReplacements, windows }: IReplacedText) =>
   replaceInWindows(
     text,
     Patterns.strikethroughDelimiter,
@@ -232,12 +235,12 @@ const replaceStrikethrough = ({ text, windows }: IReplacedText) =>
     Patterns.closingSpanPatternString,
     windows,
     {
-      maxReplacements: 100,
+      maxReplacements,
       noAlphaNumericPadded: true,
     },
   );
 
-const replaceItalic = ({ text, windows }: IReplacedText) =>
+const replaceItalic = ({ text, maxReplacements, windows }: IReplacedText) =>
   replaceInWindows(
     text,
     Patterns.italicDelimiter,
@@ -247,12 +250,12 @@ const replaceItalic = ({ text, windows }: IReplacedText) =>
     Patterns.closingSpanPatternString,
     windows,
     {
-      maxReplacements: 100,
+      maxReplacements,
       noAlphaNumericPadded: true,
     },
   );
 
-const replaceBlockQuote = ({ text, windows }: IReplacedText) =>
+const replaceBlockQuote = ({ text, maxReplacements, windows }: IReplacedText) =>
   replaceInWindows(
     text,
     Patterns.blockQuoteDelimiter,
@@ -265,11 +268,11 @@ const replaceBlockQuote = ({ text, windows }: IReplacedText) =>
       asymmetric: true,
       greedy: true,
       replaceNewlines: true,
-      maxReplacements: 100,
+      maxReplacements,
     },
   );
 
-const replaceQuote = ({ text, windows }: IReplacedText) =>
+const replaceQuote = ({ text, maxReplacements, windows }: IReplacedText) =>
   replaceInWindows(
     text,
     Patterns.inlineQuoteDelimiter,
@@ -280,7 +283,7 @@ const replaceQuote = ({ text, windows }: IReplacedText) =>
     windows,
     {
       asymmetric: true,
-      maxReplacements: 100,
+      maxReplacements,
     },
   );
 
@@ -293,7 +296,11 @@ const replaceSlackdown = (text: string) => {
     replaceItalic,
     replaceBlockQuote,
     replaceQuote,
-  ].reduce((acc, func) => func(acc), { text, windows: [new ReplacementWindow(0, text.length - 1)] }).text;
+  ].reduce((acc, func) => func(acc), {
+    text,
+    maxReplacements: 100,
+    windows: [new ReplacementWindow(0, text.length - 1)],
+  }).text;
 };
 
 export default replaceSlackdown;
