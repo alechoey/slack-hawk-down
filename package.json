@@ -6,7 +6,7 @@
   "scripts": {
     "update-emoji": "node src/scripts/updateEmoji.js",
     "compile": "babel src --presets @babel/preset-env --out-dir dist",
-    "build": "yarn run update-emoji && yarn run compile && node_modules/.bin/rollup dist/index.js --file dist/bundle.js --format iife",
+    "build": "yarn run update-emoji && yarn run compile && browserify dist/index.js --standalone slack-hawk-down -o dist/bundle.js",
     "test": "yarn run update-emoji && node_modules/.bin/mocha --require @babel/register",
     "eslint": "eslint --ext js,ts src/",
     "prepublish": "yarn run eslint && yarn run test && yarn run build"
@@ -39,7 +39,7 @@
     "@babel/register": "^7.6.2",
     "babel-eslint": "^10.0.3",
     "babel-preset-minify": "^0.5.1",
-    "browserify": "^16.1.1",
+    "browserify": "^16.5.0",
     "chai": "^4.2.0",
     "emoji-datasource": "^4.0.3",
     "eslint": "^6.5.1",
@@ -54,7 +54,6 @@
     "husky": "^3.0.8",
     "mocha": "^6.2.1",
     "prettier-eslint": "^9.0.0",
-    "rollup": "^1.23.0",
     "yarn": "^1.16.0"
   },
   "eslintConfig": {
