@@ -15,9 +15,13 @@ export const newlineRegExp = XRegExp.cache('\\n', 'nsg');
 export const whitespaceRegExp = XRegExp.cache('\\s', 'ns');
 
 export const buildOpeningDelimiterRegExp = (delimiter: string, options: IPatternOptions = {}) => {
-  const noAlphaNumericPadPattern = options.noAlphaNumericPadded ? '(?<=^|[^A-z0-9])' : '';
+  const startPattern = '(?<=^|\\n)';
+  const noAlphaNumericPadded = options.noAlphaNumericPadded ? '(?<=^|[^A-z0-9])' : '';
   const openingWhitespacePattern = options.openingWhitespace ? '(?<openingCapturedWhitespace>^|\\s)?' : '';
-  return XRegExp.cache(`${noAlphaNumericPadPattern}${delimiter}${openingWhitespacePattern}(?=\\S)`, 'ns');
+  return XRegExp.cache(
+    `${options.startAnchored ? startPattern : noAlphaNumericPadded}${delimiter}${openingWhitespacePattern}(?=\\S)`,
+    'ns',
+  );
 };
 
 // We can't perform negative lookahead to capture the last consecutive delimiter

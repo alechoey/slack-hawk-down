@@ -128,7 +128,7 @@ describe('markdown', () => {
 
     context('when not start anchored', () => {
       it('should not render an element', () => {
-        escapeForSlackWithMarkdown('this is not > an inline quote').should.equal('this is not > an inline quote');
+        escapeForSlackWithMarkdown('this is not &gt;an inline quote').should.equal('this is not &gt;an inline quote');
       });
     });
   });
