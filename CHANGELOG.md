@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.2
+- Fix markdown issues where certain delimiters would not wrap others
+
 ## 0.5.1
 - Use browserify for building
 - Fixes broken bundle imports
