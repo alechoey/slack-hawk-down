@@ -31,3 +31,9 @@ export interface IPatternOptions {
   openingWhitespace?: boolean;
   startAnchored?: boolean;
 }
+
+export interface IControlSequenceOptions {
+  channels: ChannelMap;
+  usergroups: GroupMap;
+  users: UserMap;
+}

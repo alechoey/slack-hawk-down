@@ -1,6 +1,7 @@
 import XRegExp from 'xregexp';
-import { IReplaceOptions, IReplacedText } from './types.ts';
+
 import * as Patterns from './patterns.ts';
+import { IReplaceOptions, IReplacedText } from './types.ts';
 
 class ReplacementWindow {
   start: number;
@@ -79,7 +80,7 @@ const replaceInWindows = (
 
       const textBetweenDelimiters = text.slice(openingMatch.index + openingMatch[0].length, closingMatch.index);
       const replacedTextBetweenDelimiters = replaceNewlines
-        ? XRegExp.replace(textBetweenDelimiters, Patterns.newlineRegExp, Patterns.lineBreakTagLiteral)
+        ? XRegExp.replace(textBetweenDelimiters, Patterns.newlinePattern, Patterns.lineBreakTagLiteral)
         : textBetweenDelimiters;
 
       const replacedDelimiterText = [

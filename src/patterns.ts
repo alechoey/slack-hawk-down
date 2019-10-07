@@ -11,8 +11,24 @@ export const italicOpeningPatternString = '<span class="slack_italics">';
 export const blockDivOpeningPatternString = '<div class="slack_block">';
 export const blockSpanOpeningPatternString = '<span class="slack_block">';
 export const lineBreakTagLiteral = '<br />';
-export const newlineRegExp = XRegExp.build('\\n', 'ng');
-export const whitespaceRegExp = XRegExp.build('\\s', 'n');
+
+export const newlinePattern = new XRegExp('\\n', 'g');
+// https://api.slack.com/docs/message-formatting
+export const userMentionPattern = new XRegExp(
+  '<@(((?<userID>U[^|>]+)(\\|(?<userName>[^>]+))?)|(?<userNameWithoutID>[^>]+))>',
+  'ng',
+);
+export const channelMentionPattern = new XRegExp(
+  '<#(((?<channelID>C[^|>]+)(\\|(?<channelName>[^>]+))?)|(?<channelNameWithoutID>[^>]+))>',
+  'ng',
+);
+export const linkPattern = new XRegExp('<(?<linkUrl>https?:[^|>]+)(\\|(?<linkHtml>[^>]+))?>', 'ng');
+export const mailToPattern = new XRegExp('<mailto:(?<mailTo>[^|>]+)(\\|(?<mailToName>[^>]+))?>', 'ng');
+export const subteamCommandPattern = new XRegExp('<!subteam\\^(?<subteamID>S[^|>]+)(\\|(?<subteamName>[^>]+))?>', 'ng');
+export const commandPattern = new XRegExp('<!(?<commandLiteral>[^|>]+)(\\|(?<commandName>[^>]+))?>', 'ng');
+
+export const emojiPattern = new XRegExp(':(?<key>[^\\s,:]+):', 'ng');
+export const emojiAliasPattern = new XRegExp('^alias:(?<aliasName>\\S+)$', 'n');
 
 const buildOpeningDelimiterRegExp = (delimiter: string, options: IPatternOptions = {}) => {
   const anchorPattern = '(?<=^|\\n)';
@@ -21,17 +37,15 @@ const buildOpeningDelimiterRegExp = (delimiter: string, options: IPatternOptions
   const openingWhitespacePattern = options.openingWhitespace ? '(?<openingCapturedWhitespace>^|\\s*)' : '';
   const characterPadPattern = options.allowCharacterPad ? '' : noQuoteOrAlphaPadPattern;
   const startPattern = options.startAnchored ? anchorPattern : characterPadPattern;
-  return XRegExp.build(`${startPattern}${delimiter}${openingWhitespacePattern}(?=\\S)`, 'n');
+  return new XRegExp(`${startPattern}${delimiter}${openingWhitespacePattern}(?=\\S)`, 'n');
 };
 
-// We can't perform negative lookahead to capture the last consecutive delimiter
-// since delimiters can be more than once character long
 const buildClosingDelimiterRegExp = (delimiter: string, options: IPatternOptions = {}) => {
   const closingWhitespacePattern = options.closingWhitespace ? '(?<closingCapturedWhitespace>\\s*)' : '';
   const noAlphaNumericPadPattern = '(?=$|[^A-Za-z0-9])';
   const noQuoteOrAlphaPadPattern = options.noQuotePad ? "(?=$|[^'`A-Za-z0-9])" : noAlphaNumericPadPattern;
   const endPattern = options.allowCharacterPad ? '' : noQuoteOrAlphaPadPattern;
-  return XRegExp.build(`(?<=\\S)${closingWhitespacePattern}${delimiter}${endPattern}`, 'n');
+  return new XRegExp(`(?<=\\S)${closingWhitespacePattern}${delimiter}${endPattern}`, 'n');
 };
 
 export const blockCodeDelimiter = '```';
@@ -88,11 +102,11 @@ export const blockQuoteOpeningPattern = buildOpeningDelimiterRegExp(XRegExp.esca
   startAnchored: true,
 });
 
-export const blockQuoteClosingPattern = XRegExp.build('$');
+export const blockQuoteClosingPattern = new XRegExp('$');
 
 export const inlineQuoteOpeningPattern = buildOpeningDelimiterRegExp(XRegExp.escape(inlineQuoteDelimiter), {
   openingWhitespace: true,
   startAnchored: true,
 });
 
-export const inlineQuoteClosingPattern = XRegExp.build('\\n|$');
+export const inlineQuoteClosingPattern = new XRegExp('\\n|$');
