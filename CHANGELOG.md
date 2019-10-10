@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.5.2
+## 0.5.3
 - Fix markdown issues where certain delimiters would not wrap others
 
 ## 0.5.1
