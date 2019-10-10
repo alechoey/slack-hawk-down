@@ -1,5 +1,5 @@
 import XRegExp from 'xregexp';
-import { IPatternOptions } from './types.ts';
+import { IPatternOptions } from './types';
 
 export const closingDivPatternString = '</div>';
 export const closingSpanPatternString = '</span>';

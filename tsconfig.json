@@ -17,7 +17,7 @@
   },
   "include": [
     "src/**/*",
-    "test/**/*"
+    "test/**/*", "scripts", "updateEmoji.js"
   ],
   "exclude": [
     "node_modules"

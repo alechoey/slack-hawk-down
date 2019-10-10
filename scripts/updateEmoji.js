@@ -2,7 +2,7 @@
 const rawEmoji = require('emoji-datasource/emoji_pretty.json');
 const fs = require('fs');
 
-const EMOJI_PATHS = ['dist/staticEmoji.js', 'src/staticEmoji.js'];
+const EMOJI_PATHS = ['src/staticEmoji.js'];
 
 process.stdout.write('Processing raw emoji list...');
 const condensedEmoji = rawEmoji.reduce(function(accumulator, emoji) {

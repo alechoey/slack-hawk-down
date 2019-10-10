@@ -1,7 +1,7 @@
 import XRegExp from 'xregexp';
 
-import * as Patterns from './patterns.ts';
-import { IReplaceOptions, IReplacedText } from './types.ts';
+import * as Patterns from './patterns';
+import { IReplaceOptions, IReplacedText } from './types';
 
 class ReplacementWindow {
   start: number;

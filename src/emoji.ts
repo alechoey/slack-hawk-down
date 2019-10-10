@@ -1,8 +1,8 @@
 import XRegExp from 'xregexp';
 
-import { emojiAliasPattern, emojiPattern } from './patterns.ts';
-import emoji from './staticEmoji.js';
-import { EmojiMap } from './types.ts';
+import { emojiAliasPattern, emojiPattern } from './patterns';
+import emoji from './staticEmoji';
+import { EmojiMap } from './types';
 
 export const replaceEmoji = (text: string, customEmoji: EmojiMap) => {
   const allEmoji: EmojiMap = { ...emoji, ...customEmoji };

@@ -1,12 +1,12 @@
 {
   "name": "slack-hawk-down",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Render Slack flavored markdown as HTML",
-  "main": "dist/bundle.js",
+  "main": "src/index.js",
   "scripts": {
-    "update-emoji": "node src/scripts/updateEmoji.js",
-    "compile": "babel src --presets @babel/preset-env --out-dir dist",
-    "build": "yarn run update-emoji && yarn run compile && browserify dist/index.js --standalone slack-hawk-down -o dist/bundle.js",
+    "update-emoji": "node scripts/updateEmoji.js",
+    "build": "yarn update-emoji && yarn build:babel",
+    "build:babel": "babel src --out-file dist/bundle.js --extensions .js,.ts",
     "test": "yarn run update-emoji && node_modules/.bin/mocha --require @babel/register",
     "eslint": "eslint --ext js,ts src/",
     "prepublish": "yarn run eslint && yarn run test && yarn run build"

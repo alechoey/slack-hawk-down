@@ -7,8 +7,8 @@ import {
   mailToPattern,
   subteamCommandPattern,
   userMentionPattern,
-} from './patterns.ts';
-import { ChannelMap, GroupMap, IControlSequenceOptions, UserMap } from './types.ts';
+} from './patterns';
+import { ChannelMap, GroupMap, IControlSequenceOptions, UserMap } from './types';
 
 const escapeTags = (text: string) => ['&lt;', text.substring(1, text.length - 1), '&gt;'].join('');
 
